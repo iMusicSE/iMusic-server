@@ -5,7 +5,16 @@ const path = require('path');
 const { sql, connectDB } = require('./db');
 const app = express();
 
-app.use(cors());
+// 最宽松的CORS配置 - 允许所有来源访问（开发/测试环境使用）
+app.use(cors({
+  origin: true, // 允许所有来源（动态返回请求的origin）
+  credentials: true, // 允许携带凭证（cookies, authorization headers等）
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'], // 允许所有常用HTTP方法
+  allowedHeaders: '*', // 允许所有请求头
+  exposedHeaders: '*', // 暴露所有响应头给前端
+  maxAge: 86400, // 预检请求缓存时间（24小时）
+  optionsSuccessStatus: 200 // 兼容旧浏览器
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
