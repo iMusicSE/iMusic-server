@@ -1,0 +1,28 @@
+{
+  "name": "imusic-server",
+  "version": "1.0.0",
+  "description": "```bash\r npm init -y\r npm install express cors body-parser\r npm install mssql\r ```\r 如果最后一步失败，可以尝试切换镜像源再安装，即\r ```bash\r npm config set registry https://registry.npmmirror.com\r npm install mssql\r ```\r ## 2、在你的ssms（Microsoft SQL Server Management Studio）里创建数据库\r 运行music.sql\r ## 3、将js文件移入该文件夹\r - db.js 数据库连接\r - server.js 接口服务\r ## 4、修改db.js文件\r  修改你的SQL账户和密码\r ## 5、运行\r ```bash\r node server.js\r ```\r 开启代理，显示\r ```bash\r 🎵 Server running on http://localhost:3000\r ✅ 已成功连接到 SQL Server\r ```\r 即成功",
+  "main": "db.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMusicSE/iMusic-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iMusicSE/iMusic-server/issues"
+  },
+  "homepage": "https://github.com/iMusicSE/iMusic-server#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mssql": "^12.0.0",
+    "multer": "^2.0.2"
+  }
+}
