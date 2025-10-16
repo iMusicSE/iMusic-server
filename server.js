@@ -143,14 +143,22 @@ app.get('/favorites/:userId', async (req, res) => {
 // 新增收藏
 app.post('/favorites/add', async (req, res) => {
   const { userId, musicId } = req.body;
+  console.log('🎵 [DEBUG] 收藏接口被调用');
+  console.log('  ├─ 请求体:', req.body);
+  console.log('  ├─ userId:', userId, '类型:', typeof userId);
+  console.log('  └─ musicId:', musicId, '类型:', typeof musicId);
+  
   try {
+    console.log('  ├─ 准备插入数据库...');
     await sql.query`
       INSERT INTO favorites (userId, musicId)
       VALUES (${userId}, ${musicId})
     `;
+    console.log('  └─ ✅ 数据库插入成功');
     res.json({ success: true, message: '收藏成功' });
   } catch (err) {
-    console.error('❌ 收藏失败：', err);
+    console.error('  └─ ❌ 收藏失败：', err);
+    console.error('      详细错误:', err.message);
     res.status(500).json({ success: false, message: '收藏失败' });
   }
 });
@@ -158,13 +166,21 @@ app.post('/favorites/add', async (req, res) => {
 // 删除收藏
 app.post('/favorites/delete', async (req, res) => {
   const { userId, musicId } = req.body;
+  console.log('🗑️  [DEBUG] 删除收藏接口被调用');
+  console.log('  ├─ 请求体:', req.body);
+  console.log('  ├─ userId:', userId, '类型:', typeof userId);
+  console.log('  └─ musicId:', musicId, '类型:', typeof musicId);
+  
   try {
+    console.log('  ├─ 准备从数据库删除...');
     await sql.query`
       DELETE FROM favorites WHERE userId = ${userId} AND musicId = ${musicId}
     `;
+    console.log('  └─ ✅ 数据库删除成功');
     res.json({ success: true, message: '已取消收藏' });
   } catch (err) {
-    console.error('❌ 删除收藏失败：', err);
+    console.error('  └─ ❌ 删除收藏失败：', err);
+    console.error('      详细错误:', err.message);
     res.status(500).json({ success: false, message: '删除收藏失败' });
   }
 });
@@ -184,19 +200,30 @@ app.get('/history/:userId', async (req, res) => {
 // 新增播放历史（自动去重）
 app.post('/history/add', async (req, res) => {
   const { userId, musicId } = req.body;
+  console.log('🕒 [DEBUG] 播放历史接口被调用');
+  console.log('  ├─ 请求体:', req.body);
+  console.log('  ├─ userId:', userId, '类型:', typeof userId);
+  console.log('  └─ musicId:', musicId, '类型:', typeof musicId);
+  
   try {
     // 删除旧记录
+    console.log('  ├─ 准备删除旧记录...');
     await sql.query`
       DELETE FROM history WHERE userId = ${userId} AND musicId = ${musicId}
     `;
+    console.log('  ├─ 旧记录删除完成');
+    
     // 插入新记录
+    console.log('  ├─ 准备插入新记录...');
     await sql.query`
       INSERT INTO history (userId, musicId)
       VALUES (${userId}, ${musicId})
     `;
+    console.log('  └─ ✅ 播放历史插入成功');
     res.json({ success: true, message: '历史已更新' });
   } catch (err) {
-    console.error('❌ 添加历史失败：', err);
+    console.error('  └─ ❌ 添加历史失败：', err);
+    console.error('      详细错误:', err.message);
     res.status(500).json({ success: false, message: '添加历史失败' });
   }
 });
