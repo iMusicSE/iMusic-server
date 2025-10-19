@@ -7,6 +7,7 @@ npm init -y
 npm install express cors body-parser
 npm install mssql
 npm install multer
+npm install axios
 ```
 
 如果最后一步失败，可以尝试切换镜像源再安装，即
