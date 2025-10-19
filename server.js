@@ -27,6 +27,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log('📁 已自动创建 uploads 文件夹');
 }
 
+
 // 注册接口
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -251,6 +252,134 @@ app.post('/history/clear', async (req, res) => {
     res.status(500).json({ success: false, message: '清空播放历史失败' });
   }
 });
+
+//下载模块
+const axios = require('axios');
+
+// 创建 downloads 文件夹
+const downloadsDir = path.join(__dirname, 'downloads');
+if (!fs.existsSync(downloadsDir)) {
+  fs.mkdirSync(downloadsDir);
+  console.log('📁 已自动创建 downloads 文件夹');
+}
+
+app.post('/downloads/add', async (req, res) => {
+  const { userId, musicId, songName, artist, album, coverUrl, fileUrl, lyricsUrl } = req.body;
+
+  if (!fileUrl || !musicId) {
+    return res.status(400).json({ success: false, message: '缺少 fileUrl 或 musicId' });
+  }
+
+  try {
+    // 下载歌曲
+    const response = await axios({ url: fileUrl, method: 'GET', responseType: 'stream' });
+    const safeName = `${songName}_${musicId}`.replace(/[\\/:*?"<>| ]/g, '_');
+    const audioPath = path.join(downloadsDir, `${safeName}.mp3`);
+    const writer = fs.createWriteStream(audioPath);
+    response.data.pipe(writer);
+    await new Promise((resolve, reject) => { writer.on('finish', resolve); writer.on('error', reject); });
+    const localPath = `http://localhost:3000/downloads/files/${safeName}.mp3`;
+
+    // 下载歌词
+    let lyricsPath = null;
+    let lyricsStatus = 0;
+    if (req.body.lyricsText) {
+      try {
+        const lrcPath = path.join(downloadsDir, `${safeName}.lrc`);
+        fs.writeFileSync(lrcPath, req.body.lyricsText, 'utf-8');
+        lyricsPath = `http://localhost:3000/downloads/files/${safeName}.lrc`;
+        lyricsStatus = 1;
+      } catch (err) {
+        console.warn('⚠️ 歌词生成失败', err.message);
+      }
+    }
+
+    // 写入数据库
+    await sql.query`
+      INSERT INTO DownloadedSongs 
+        (userId, musicId, songName, artist, album, coverUrl, localPath, status, lyricsPath, lyricsStatus)
+      VALUES
+        (${userId}, ${musicId}, ${songName}, ${artist}, ${album}, ${coverUrl}, ${localPath}, 1, ${lyricsPath}, ${lyricsStatus})
+    `;
+
+    res.json({ success: true, message: '下载完成', path: localPath, lyricsPath });
+
+  } catch (err) {
+    console.error('❌ 下载失败：', err);
+    res.status(500).json({ success: false, message: '下载失败', error: err.message });
+  }
+});
+
+
+//获取用户下载列表
+app.get('/downloads/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const result = await sql.query`
+      SELECT * FROM DownloadedSongs WHERE userId = ${userId} ORDER BY downloadTime DESC
+    `;
+    res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error('❌ 获取下载列表失败：', err);
+    res.status(500).json({ success: false, message: '获取失败' });
+  }
+});
+
+
+// 删除下载记录（同时删除本地文件）
+app.post('/downloads/delete', async (req, res) => {
+  const { downloadId } = req.body;
+  if (!downloadId) {
+    return res.status(400).json({ success: false, message: '缺少 downloadId' });
+  }
+
+  try {
+    const result = await sql.query`
+      SELECT localPath FROM DownloadedSongs WHERE downloadId = ${downloadId}
+    `;
+    if (result.recordset.length === 0) {
+      return res.json({ success: false, message: '记录不存在' });
+    }
+
+    // 删除本地文件
+    const localUrl = result.recordset[0].localPath;
+    const fileName = localUrl.split('/downloads/files/')[1];
+    const filePath = path.join(downloadsDir, fileName);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`🗑️ 已删除文件: ${filePath}`);
+    }
+
+    // 删除数据库记录
+    await sql.query`DELETE FROM DownloadedSongs WHERE downloadId = ${downloadId}`;
+    res.json({ success: true, message: '删除成功' });
+
+  } catch (err) {
+    console.error('❌ 删除失败：', err);
+    res.status(500).json({ success: false, message: '删除失败' });
+  }
+});
+
+// 清空下载记录
+app.post('/downloads/clear', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ success: false, message: '缺少 userId' });
+
+  try {
+    await sql.query`DELETE FROM DownloadedSongs WHERE userId = ${userId}`;
+    res.json({ success: true, message: '已清空下载记录' });
+  } catch (err) {
+    console.error('❌ 清空下载失败：', err);
+    res.status(500).json({ success: false, message: '清空下载失败' });
+  }
+});
+
+
+
+// 提供静态访问下载文件
+app.use('/downloads/files', express.static(path.join(__dirname, 'downloads')));
+
+
 
 
 
