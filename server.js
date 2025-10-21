@@ -334,20 +334,34 @@ app.post('/downloads/delete', async (req, res) => {
   }
 
   try {
+    // 同时查询歌曲文件和歌词文件路径
     const result = await sql.query`
-      SELECT localPath FROM DownloadedSongs WHERE downloadId = ${downloadId}
+      SELECT localPath, lyricsPath FROM DownloadedSongs WHERE downloadId = ${downloadId}
     `;
     if (result.recordset.length === 0) {
       return res.json({ success: false, message: '记录不存在' });
     }
 
-    // 删除本地文件
+    // 删除音频文件
     const localUrl = result.recordset[0].localPath;
-    const fileName = localUrl.split('/downloads/files/')[1];
-    const filePath = path.join(downloadsDir, fileName);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log(`🗑️ 已删除文件: ${filePath}`);
+    if (localUrl) {
+      const fileName = localUrl.split('/downloads/files/')[1];
+      const filePath = path.join(downloadsDir, fileName);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`🗑️ 已删除音频文件: ${filePath}`);
+      }
+    }
+
+    // 删除歌词文件
+    const lyricsUrl = result.recordset[0].lyricsPath;
+    if (lyricsUrl) {
+      const lyricsName = lyricsUrl.split('/downloads/files/')[1];
+      const lyricsPath = path.join(downloadsDir, lyricsName);
+      if (fs.existsSync(lyricsPath)) {
+        fs.unlinkSync(lyricsPath);
+        console.log(`🗑️ 已删除歌词文件: ${lyricsPath}`);
+      }
     }
 
     // 删除数据库记录
@@ -359,6 +373,7 @@ app.post('/downloads/delete', async (req, res) => {
     res.status(500).json({ success: false, message: '删除失败' });
   }
 });
+
 
 // 清空下载记录
 app.post('/downloads/clear', async (req, res) => {
